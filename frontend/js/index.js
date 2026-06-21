@@ -1,107 +1,174 @@
-// Global State and Mock DB Initialization
-const DEFAULT_JOBS = [
-  {
-    id: "stripe-swe-1",
-    title: "Software Engineering Intern",
-    companyName: "Stripe",
-    location: "San Francisco, CA",
-    duration: "3 Months",
-    stipend: 15000,
-    description: "Join Stripe's payments engine team to build developer-friendly APIs. You will work on API integrations, dashboard enhancements, and scale infrastructure. Requirements: Strong foundations in data structures, algorithms, and web technologies.",
-    postedBy: "sarah@stripe.com",
-    logoColor: "#635BFF",
-    logoChar: "S",
-    createdAt: new Date().toLocaleDateString()
-  },
-  {
-    id: "notion-pd-2",
-    title: "Product Design Intern",
-    companyName: "Notion",
-    location: "Remote",
-    duration: "6 Months",
-    stipend: 12000,
-    description: "Work on Notion's core editor team. Create intuitive UX patterns, design new interactive blocks, and work closely with product managers and engineers. Requirements: Portfolio demonstrating UI/UX layout design, prototyping skills, and product thinking.",
-    postedBy: "sarah@stripe.com",
-    logoColor: "#000000",
-    logoChar: "N",
-    createdAt: new Date().toLocaleDateString()
-  }
-];
+// Global State and Render API Integration
+const API_URL = 'https://workhub-wdsm.onrender.com/api';
+let currentUser = null;
 
-const DEFAULT_USERS = [
-  { name: "Alex Smith", email: "alex@university.edu", role: "student", resume: "https://drive.google.com/file/d/alex-resume/view" },
-  { name: "Sarah Jenkins", email: "sarah@stripe.com", role: "recruiter", company: "Stripe" },
-  { name: "Supriyo Admin", email: "supriyo3606c@gmail.com", role: "admin" },
-  { name: "Super Admin", email: "admin@workhub.com", role: "admin" }
-];
-
-// Load collections from localStorage or set defaults
-let jobs = JSON.parse(localStorage.getItem("workhub_jobs")) || [];
-let applications = JSON.parse(localStorage.getItem("workhub_applications")) || [];
-let users = JSON.parse(localStorage.getItem("workhub_users")) || [];
-let activeUserEmail = localStorage.getItem("workhub_active_user_email") || null;
+// Mock database lists kept in memory to maintain UI compatibility
+let jobs = [];
+let applications = [];
+let users = [];
+let activeUserEmail = null;
 let currentRole = "guest";
 let currentJobIdToApply = null;
 let currentJobIdToEdit = null;
 
+async function fetchWithAuth(url, options = {}) {
+  const token = localStorage.getItem('workhub_token');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}
+
 function updateSessionState() {
-  activeUserEmail = localStorage.getItem("workhub_active_user_email") || null;
-  if (activeUserEmail === "supriyo3606c@gmail.com") {
-    currentRole = "admin";
-  } else if (activeUserEmail) {
-    const foundUser = users.find(u => u.email === activeUserEmail);
-    if (foundUser) {
-      currentRole = foundUser.role;
-    } else {
-      currentRole = "student";
-    }
+  if (currentUser) {
+    activeUserEmail = currentUser.email;
+    currentRole = currentUser.role;
   } else {
+    activeUserEmail = null;
     currentRole = "guest";
   }
 }
 
-// Initialize mock DB if empty
-function initMockDB() {
-  if (jobs.length === 0 && localStorage.getItem("workhub_jobs") === null) {
-    jobs = [...DEFAULT_JOBS];
-    localStorage.setItem("workhub_jobs", JSON.stringify(jobs));
+// Load dynamic data from Render backend MongoDB database
+async function loadBackendData() {
+  try {
+    // 1. Fetch public jobs
+    const jobsRes = await fetch(`${API_URL}/jobs`);
+    if (jobsRes.ok) {
+      const backendJobs = await jobsRes.json();
+      jobs = backendJobs.map(job => ({
+        id: job._id,
+        title: job.title,
+        companyName: job.companyName,
+        location: job.location,
+        duration: job.duration,
+        stipend: job.stipend,
+        description: job.description,
+        postedBy: typeof job.postedBy === 'object' ? job.postedBy?.email : job.postedBy,
+        logoColor: job.logoColor,
+        logoChar: job.logoChar,
+        createdAt: job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Just now'
+      }));
+    }
+
+    // 2. Fetch authenticated profile if token exists
+    const token = localStorage.getItem('workhub_token');
+    if (token) {
+      const meRes = await fetchWithAuth(`${API_URL}/auth/me`);
+      if (meRes.ok) {
+        currentUser = await meRes.json();
+        updateSessionState();
+        
+        // 3. Load role-specific data
+        if (currentRole === 'student') {
+          const appsRes = await fetchWithAuth(`${API_URL}/applications/mine`);
+          if (appsRes.ok) {
+            const backendApps = await appsRes.json();
+            applications = backendApps.map(app => ({
+              id: app._id,
+              jobId: app.job?._id || app.job || app.jobId,
+              studentName: app.studentName,
+              studentEmail: app.studentEmail,
+              resumeLink: app.resumeLink,
+              coverLetter: app.coverLetter,
+              status: app.status,
+              appliedAt: app.createdAt ? new Date(app.createdAt).toLocaleDateString() : 'Today'
+            }));
+          }
+        } else if (currentRole === 'recruiter') {
+          // Fetch recruiter jobs
+          const recJobsRes = await fetchWithAuth(`${API_URL}/jobs/recruiter/mine`);
+          if (recJobsRes.ok) {
+            const recJobs = await recJobsRes.json();
+            // Fetch applications for each recruiter job
+            const appsPromises = recJobs.map(job =>
+              fetchWithAuth(`${API_URL}/applications/job/${job._id}`).then(res => res.ok ? res.json() : [])
+            );
+            const appsResults = await Promise.all(appsPromises);
+            applications = appsResults.flat().map(app => ({
+              id: app._id,
+              jobId: app.job?._id || app.job || app.jobId,
+              studentName: app.studentName,
+              studentEmail: app.studentEmail,
+              resumeLink: app.resumeLink,
+              coverLetter: app.coverLetter,
+              status: app.status,
+              appliedAt: app.createdAt ? new Date(app.createdAt).toLocaleDateString() : 'Today'
+            }));
+          }
+        } else if (currentRole === 'admin') {
+          // Fetch admin stats, users and jobs
+          const statsRes = await fetchWithAuth(`${API_URL}/admin/stats`);
+          let stats = { totalUsers: 0, totalJobs: 0, totalApplications: 0 };
+          if (statsRes.ok) {
+            stats = await statsRes.json();
+          }
+          
+          const usersRes = await fetchWithAuth(`${API_URL}/admin/users`);
+          if (usersRes.ok) {
+            users = await usersRes.json();
+          }
+
+          const adminJobsRes = await fetchWithAuth(`${API_URL}/admin/jobs`);
+          let adminJobs = [];
+          if (adminJobsRes.ok) {
+            adminJobs = await adminJobsRes.json();
+          }
+
+          window.adminStats = stats;
+          
+          jobs = adminJobs.map(job => ({
+            id: job._id,
+            title: job.title,
+            companyName: job.companyName,
+            location: job.location,
+            duration: job.duration,
+            stipend: job.stipend,
+            description: job.description,
+            postedBy: typeof job.postedBy === 'object' ? job.postedBy?.email : job.postedBy,
+            logoColor: job.logoColor,
+            logoChar: job.logoChar,
+            createdAt: job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Just now',
+            applicationCount: job.applicationCount
+          }));
+        }
+      } else {
+        // Token invalid or expired
+        handleLogout();
+      }
+    } else {
+      currentUser = null;
+      updateSessionState();
+    }
+  } catch (error) {
+    console.error("Error loading backend data:", error);
   }
-  if (users.length === 0) {
-    users = [...DEFAULT_USERS];
-    localStorage.setItem("workhub_users", JSON.stringify(users));
-  }
-  // Ensure supriyo3606c@gmail.com is in users list as admin
-  if (!users.some(u => u.email === "supriyo3606c@gmail.com")) {
-    users.push({ name: "Supriyo Admin", email: "supriyo3606c@gmail.com", role: "admin" });
-    saveUsers();
-  }
-  updateSessionState();
 }
 
-// Save helpers
-function saveJobs() {
-  localStorage.setItem("workhub_jobs", JSON.stringify(jobs));
+async function initMockDB() {
+  await loadBackendData();
 }
 
-function saveApplications() {
-  localStorage.setItem("workhub_applications", JSON.stringify(applications));
-}
+// Save helpers (no-ops since we use database)
+function saveJobs() {}
+function saveApplications() {}
+function saveUsers() {}
 
-function saveUsers() {
-  localStorage.setItem("workhub_users", JSON.stringify(users));
-}
-
-// Get logged-in user detail based on simulation role
+// Get logged-in user detail
 function getCurrentMockUser() {
-  if (activeUserEmail) {
-    return users.find(u => u.email === activeUserEmail) || null;
-  }
-  return null;
+  return currentUser;
 }
 
 // Page load event listener
-document.addEventListener("DOMContentLoaded", () => {
-  initMockDB();
+document.addEventListener("DOMContentLoaded", async () => {
+  await initMockDB();
   setupEventListeners();
   updateUIForRole();
   renderListings();
@@ -135,18 +202,28 @@ function setupEventListeners() {
   // Resume save button
   const saveResumeBtn = document.getElementById("btn-save-resume");
   if (saveResumeBtn) {
-    saveResumeBtn.addEventListener("click", () => {
+    saveResumeBtn.addEventListener("click", async () => {
       const link = document.getElementById("student-resume-input").value.trim();
       if (!link) {
         alert("Please enter a valid link.");
         return;
       }
-      const student = getCurrentMockUser();
-      if (student) {
-        student.resume = link;
-        saveUsers();
+      try {
+        const response = await fetchWithAuth(`${API_URL}/auth/resume`, {
+          method: 'PUT',
+          body: JSON.stringify({ resume: link })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || 'Error updating resume');
+        }
+        if (currentUser) {
+          currentUser.resume = link;
+        }
         alert("Resume link saved successfully!");
         renderStudentDashboard();
+      } catch (error) {
+        alert(error.message);
       }
     });
   }
@@ -194,10 +271,15 @@ function showView(viewId) {
   }
 
   // Render specific dashboard content when shown
-  if (viewId === "student-dashboard") renderStudentDashboard();
-  if (viewId === "recruiter-dashboard") renderRecruiterDashboard();
-  if (viewId === "admin-dashboard") renderAdminDashboard();
-  if (viewId === "listings") renderListings();
+  if (viewId === "student-dashboard") {
+    loadBackendData().then(() => renderStudentDashboard());
+  } else if (viewId === "recruiter-dashboard") {
+    loadBackendData().then(() => renderRecruiterDashboard());
+  } else if (viewId === "admin-dashboard") {
+    loadBackendData().then(() => renderAdminDashboard());
+  } else if (viewId === "listings") {
+    loadBackendData().then(() => renderListings());
+  }
 }
 
 // Adjust UI elements depending on active simulated role
@@ -263,6 +345,8 @@ function updateUIForRole() {
 function handleLogout() {
   localStorage.removeItem("workhub_active_user_email");
   localStorage.removeItem("workhub_active_role");
+  localStorage.removeItem("workhub_token");
+  currentUser = null;
   updateSessionState();
   updateUIForRole();
   showView("listings");
@@ -592,24 +676,32 @@ function toggleApplicantsDrawer(jobId) {
 }
 
 // Recruiter updates status of applicant
-function handleStatusChange(appId, newStatus) {
-  const app = applications.find(a => a.id === appId);
-  if (app) {
-    app.status = newStatus;
-    saveApplications();
+async function handleStatusChange(appId, newStatus) {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/applications/${appId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: newStatus })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Error updating status');
+    }
+    // Update local state and re-render
+    await loadBackendData();
     renderRecruiterDashboard();
-    
-    // Alert user (UX polish)
     console.log(`Updated Application ${appId} status to ${newStatus}`);
+  } catch (error) {
+    alert(error.message);
   }
 }
 
 // Admin Dashboard Rendering
 function renderAdminDashboard() {
   // Stats
-  document.getElementById("stat-admin-users").textContent = users.length;
-  document.getElementById("stat-admin-listings").textContent = jobs.length;
-  document.getElementById("stat-admin-applications").textContent = applications.length;
+  const stats = window.adminStats || { totalUsers: users.length, totalJobs: jobs.length, totalApplications: 0 };
+  document.getElementById("stat-admin-users").textContent = stats.totalUsers;
+  document.getElementById("stat-admin-listings").textContent = stats.totalJobs;
+  document.getElementById("stat-admin-applications").textContent = stats.totalApplications;
 
   // Render User Management Table
   const userTableBody = document.getElementById("admin-users-table-body");
@@ -623,7 +715,7 @@ function renderAdminDashboard() {
         <td style="text-transform:uppercase; font-size:11px; font-weight:600; color:var(--green-text)">${user.role}</td>
         <td>${user.role === 'recruiter' ? (user.company || 'Stripe') : (user.role === 'student' ? 'University' : 'WorkHub Admin')}</td>
         <td>
-          <button class="btn-card btn-card-danger" style="padding: 4px 8px;" onclick="handleDeleteUser('${user.email}')" ${user.role === 'admin' ? 'disabled' : ''}>Delete</button>
+          <button class="btn-card btn-card-danger" style="padding: 4px 8px;" onclick="handleDeleteUser('${user._id}', '${user.email}')" ${user.role === 'admin' ? 'disabled' : ''}>Delete</button>
         </td>
       `;
       userTableBody.appendChild(tr);
@@ -636,7 +728,7 @@ function renderAdminDashboard() {
     jobsTableBody.innerHTML = "";
     jobs.forEach(job => {
       const tr = document.createElement("tr");
-      const appCount = applications.filter(a => a.jobId === job.id).length;
+      const appCount = job.applicationCount !== undefined ? job.applicationCount : 0;
       tr.innerHTML = `
         <td style="font-weight:700; color:var(--slate-900)">${job.title}</td>
         <td>${job.companyName}</td>
@@ -652,16 +744,22 @@ function renderAdminDashboard() {
 }
 
 // Delete user functionality
-function handleDeleteUser(email) {
+async function handleDeleteUser(userId, email) {
   if (confirm(`Are you sure you want to delete user with email ${email}?`)) {
-    users = users.filter(u => u.email !== email);
-    saveUsers();
-    
-    // Also remove applications associated with this user if student
-    applications = applications.filter(a => a.studentEmail !== email);
-    saveApplications();
-
-    renderAdminDashboard();
+    try {
+      const response = await fetchWithAuth(`${API_URL}/admin/users/${userId}`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Error deleting user');
+      }
+      alert(data.message || 'User deleted successfully');
+      await loadBackendData();
+      renderAdminDashboard();
+    } catch (error) {
+      alert(error.message);
+    }
   }
 }
 
@@ -695,7 +793,7 @@ function handleCardApply(jobId) {
 }
 
 // Submit Application Modal Form
-function submitApplication(e) {
+async function submitApplication(e) {
   e.preventDefault();
   const resumeLink = document.getElementById("apply-resume-link").value.trim();
   const coverLetter = document.getElementById("apply-cover-letter").value.trim();
@@ -705,44 +803,36 @@ function submitApplication(e) {
     return;
   }
 
-  const student = getCurrentMockUser();
-  if (!student) return;
+  try {
+    const response = await fetchWithAuth(`${API_URL}/applications`, {
+      method: 'POST',
+      body: JSON.stringify({
+        jobId: currentJobIdToApply,
+        resumeLink,
+        coverLetter
+      })
+    });
 
-  // Check duplicate
-  const alreadyApplied = applications.some(app => app.jobId === currentJobIdToApply && app.studentEmail === student.email);
-  if (alreadyApplied) {
-    alert("You have already applied to this internship.");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Error submitting application');
+    }
+
+    if (currentUser && !currentUser.resume) {
+      currentUser.resume = resumeLink;
+    }
+
     closeModal('apply');
-    return;
+    alert("Application submitted successfully!");
+    
+    // Refresh UI
+    await loadBackendData();
+    renderListings();
+    renderStudentDashboard();
+  } catch (error) {
+    alert(error.message);
   }
-
-  // Create Application Object
-  const newApp = {
-    id: "app-" + Date.now(),
-    jobId: currentJobIdToApply,
-    studentName: student.name,
-    studentEmail: student.email,
-    resumeLink: resumeLink,
-    coverLetter: coverLetter,
-    status: "Applied",
-    appliedAt: new Date().toLocaleDateString()
-  };
-
-  applications.push(newApp);
-  saveApplications();
-
-  // Save the resume link back to the student profile if it wasn't there
-  if (!student.resume) {
-    student.resume = resumeLink;
-    saveUsers();
-  }
-
-  closeModal('apply');
-  alert("Application submitted successfully!");
-  
-  // Refresh UI
-  renderListings();
-  renderStudentDashboard();
 }
 
 // Job posting creation & editing modal trigger
@@ -777,7 +867,7 @@ function openEditJobModal(jobId) {
 }
 
 // Post/Edit job form submit
-function submitJobForm(e) {
+async function submitJobForm(e) {
   e.preventDefault();
 
   const title = document.getElementById("job-title-input").value.trim();
@@ -787,65 +877,76 @@ function submitJobForm(e) {
   const stipend = parseInt(document.getElementById("job-stipend").value.trim(), 10) || 0;
   const desc = document.getElementById("job-desc").value.trim();
 
-  const recruiter = getCurrentMockUser();
-  const email = recruiter ? recruiter.email : "sarah@stripe.com";
-
-  if (currentJobIdToEdit) {
-    // Edit Mode
-    const jobIndex = jobs.findIndex(j => j.id === currentJobIdToEdit);
-    if (jobIndex > -1) {
-      jobs[jobIndex] = {
-        ...jobs[jobIndex],
-        title,
-        companyName: company,
-        location,
-        duration,
-        stipend,
-        description: desc
-      };
-      saveJobs();
-      alert("Internship listing updated!");
+  try {
+    let response;
+    if (currentJobIdToEdit) {
+      // Edit Mode
+      response = await fetchWithAuth(`${API_URL}/jobs/${currentJobIdToEdit}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title,
+          companyName: company,
+          location,
+          duration,
+          stipend,
+          description: desc
+        })
+      });
+    } else {
+      // Create Mode
+      response = await fetchWithAuth(`${API_URL}/jobs`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title,
+          companyName: company,
+          location,
+          duration,
+          stipend,
+          description: desc
+        })
+      });
     }
-  } else {
-    // Create Mode
-    const colors = ["#635BFF", "#F24E1E", "#000000", "#10B981", "#3B82F6", "#8B5CF6"];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    const newJob = {
-      id: "job-" + Date.now(),
-      title,
-      companyName: company,
-      location,
-      duration,
-      stipend,
-      description: desc,
-      postedBy: email,
-      logoColor: randomColor,
-      logoChar: company ? company.charAt(0).toUpperCase() : "I",
-      createdAt: new Date().toLocaleDateString()
-    };
-    jobs.push(newJob);
-    saveJobs();
-    alert("Internship listing created successfully!");
-  }
 
-  closeModal('post-job');
-  renderListings();
-  renderRecruiterDashboard();
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Error saving job');
+    }
+
+    if (currentJobIdToEdit) {
+      alert("Intership listing updated!");
+    } else {
+      alert("Internship listing created successfully!");
+    }
+
+    closeModal('post-job');
+    await loadBackendData();
+    renderListings();
+    renderRecruiterDashboard();
+
+  } catch (error) {
+    alert(error.message);
+  }
 }
 
 // Delete internship listing
-function handleDeleteJob(jobId) {
+async function handleDeleteJob(jobId) {
   if (confirm("Are you sure you want to delete this internship listing? All applicant applications for this post will also be deleted.")) {
-    jobs = jobs.filter(j => j.id !== jobId);
-    saveJobs();
-
-    // Clean up applications
-    applications = applications.filter(app => app.jobId !== jobId);
-    saveApplications();
-
-    renderListings();
-    renderRecruiterDashboard();
-    renderAdminDashboard();
+    try {
+      const response = await fetchWithAuth(`${API_URL}/jobs/${jobId}`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Error deleting job');
+      }
+      alert(data.message || 'Job deleted successfully');
+      await loadBackendData();
+      renderListings();
+      if (currentRole === 'recruiter') renderRecruiterDashboard();
+      if (currentRole === 'admin') renderAdminDashboard();
+    } catch (error) {
+      alert(error.message);
+    }
   }
 }
 

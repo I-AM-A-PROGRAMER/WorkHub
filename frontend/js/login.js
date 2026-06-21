@@ -1,3 +1,4 @@
+const API_URL = 'https://workhub-wdsm.onrender.com/api';
 let pwVisible = false;
 let selectedRole = 'student';
 
@@ -19,7 +20,7 @@ function togglePassword() {
   document.getElementById('eye-hide').style.display = pwVisible ? 'block' : 'none';
 }
 
-function handleSubmit(e) {
+async function handleSubmit(e) {
   e.preventDefault();
   const btn = document.getElementById('submit-btn');
   const label = document.getElementById('btn-label');
@@ -34,57 +35,7 @@ function handleSubmit(e) {
   }
 
   const email = document.getElementById('email-input').value.trim();
-
-  // Load and seed user list if needed
-  let usersList = JSON.parse(localStorage.getItem('workhub_users'));
-  if (!usersList) {
-    usersList = [
-      { name: "Alex Smith", email: "alex@university.edu", role: "student", resume: "https://drive.google.com/file/d/alex-resume/view" },
-      { name: "Sarah Jenkins", email: "sarah@stripe.com", role: "recruiter", company: "Stripe" },
-      { name: "Supriyo Admin", email: "supriyo3606c@gmail.com", role: "admin" },
-      { name: "Super Admin", email: "admin@workhub.com", role: "admin" }
-    ];
-    localStorage.setItem('workhub_users', JSON.stringify(usersList));
-  }
-
-  const matchedUser = usersList.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-  // Validation 1: Check if account exists
-  if (!matchedUser) {
-    if (errorAlert && errorMessage) {
-      errorMessage.textContent = "Account does not exist. Please sign up first.";
-      errorAlert.style.display = 'flex';
-    } else {
-      alert("Account does not exist. Please sign up first.");
-    }
-    return;
-  }
-
-  // Validation 2: Check portal restrictions (Admin bypasses)
-  const isUserAdmin = matchedUser.role === 'admin' || matchedUser.email.toLowerCase() === "supriyo3606c@gmail.com";
-  
-  if (!isUserAdmin) {
-    if (matchedUser.role === 'recruiter' && selectedRole === 'student') {
-      const msg = "Recruiters cannot sign in through the Student portal.";
-      if (errorAlert && errorMessage) {
-        errorMessage.textContent = msg;
-        errorAlert.style.display = 'flex';
-      } else {
-        alert(msg);
-      }
-      return;
-    }
-    if (matchedUser.role === 'student' && selectedRole === 'recruiter') {
-      const msg = "Students cannot sign in through the Recruiter portal.";
-      if (errorAlert && errorMessage) {
-        errorMessage.textContent = msg;
-        errorAlert.style.display = 'flex';
-      } else {
-        alert(msg);
-      }
-      return;
-    }
-  }
+  const password = document.getElementById('pw-input').value;
 
   // Start spinner animation
   btn.disabled = true;
@@ -92,18 +43,51 @@ function handleSubmit(e) {
   arrow.style.display = 'none';
   spinner.style.display = 'block';
 
-  // Save authentication details
-  const finalRole = isUserAdmin ? "admin" : matchedUser.role;
-  localStorage.setItem('workhub_active_user_email', matchedUser.email);
-  localStorage.setItem('workhub_active_role', finalRole);
+  try {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        portalRole: selectedRole
+      })
+    });
 
-  setTimeout(() => {
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Login failed');
+    }
+
+    // Save authentication details
+    localStorage.setItem('workhub_token', data.token);
+    localStorage.setItem('workhub_active_user_email', data.email);
+    localStorage.setItem('workhub_active_role', data.role);
+
+    setTimeout(() => {
+      btn.disabled = false;
+      label.style.display = 'inline';
+      arrow.style.display = 'block';
+      spinner.style.display = 'none';
+      window.location.href = 'index.html';
+    }, 500);
+
+  } catch (error) {
     btn.disabled = false;
     label.style.display = 'inline';
     arrow.style.display = 'block';
     spinner.style.display = 'none';
-    window.location.href = 'index.html';
-  }, 1200);
+
+    if (errorAlert && errorMessage) {
+      errorMessage.textContent = error.message;
+      errorAlert.style.display = 'flex';
+    } else {
+      alert(error.message);
+    }
+  }
 }
 
 // Initialize Firebase
@@ -133,7 +117,7 @@ document.getElementById('google-signin-btn').addEventListener('click', () => {
   }
   const provider = new firebase.auth.GoogleAuthProvider();
   firebase.auth().signInWithPopup(provider)
-    .then((result) => {
+    .then(async (result) => {
       const user = result.user;
       console.log("Logged in user:", user);
       
@@ -145,70 +129,45 @@ document.getElementById('google-signin-btn').addEventListener('click', () => {
         errorAlert.style.display = 'none';
       }
 
-      // Load/Seed user list
-      let usersList = JSON.parse(localStorage.getItem('workhub_users'));
-      if (!usersList) {
-        usersList = [
-          { name: "Alex Smith", email: "alex@university.edu", role: "student", resume: "https://drive.google.com/file/d/alex-resume/view" },
-          { name: "Sarah Jenkins", email: "sarah@stripe.com", role: "recruiter", company: "Stripe" },
-          { name: "Supriyo Admin", email: "supriyo3606c@gmail.com", role: "admin" },
-          { name: "Super Admin", email: "admin@workhub.com", role: "admin" }
-        ];
-        localStorage.setItem('workhub_users', JSON.stringify(usersList));
-      }
+      try {
+        const response = await fetch(`${API_URL}/auth/google`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email,
+            name: user.displayName,
+            portalRole: selectedRole
+          })
+        });
 
-      const matchedUser = usersList.find(u => u.email.toLowerCase() === email.toLowerCase());
+        const data = await response.json();
 
-      // Validation 1: Account must exist
-      if (!matchedUser) {
+        if (!response.ok) {
+          throw new Error(data.message || 'Google authentication failed');
+        }
+
+        // Save credentials & redirect
+        localStorage.setItem('workhub_token', data.token);
+        localStorage.setItem('workhub_active_user_email', data.email);
+        localStorage.setItem('workhub_active_role', data.role);
+
+        alert("Successfully signed in as " + (data.name || user.displayName) + " (" + data.email + ")");
+        window.location.href = 'index.html';
+
+      } catch (error) {
         firebase.auth().signOut();
-        const msg = "Account does not exist. Please sign up first.";
         if (errorAlert && errorMessage) {
-          errorMessage.textContent = msg;
+          errorMessage.textContent = error.message;
           errorAlert.style.display = 'flex';
         } else {
-          alert(msg);
-        }
-        return;
-      }
-
-      // Validation 2: Portal restriction
-      const isUserAdmin = matchedUser.role === 'admin' || matchedUser.email.toLowerCase() === "supriyo3606c@gmail.com";
-
-      if (!isUserAdmin) {
-        if (matchedUser.role === 'recruiter' && selectedRole === 'student') {
-          firebase.auth().signOut();
-          const msg = "Recruiters cannot sign in through the Student portal.";
-          if (errorAlert && errorMessage) {
-            errorMessage.textContent = msg;
-            errorAlert.style.display = 'flex';
-          } else {
-            alert(msg);
-          }
-          return;
-        }
-        if (matchedUser.role === 'student' && selectedRole === 'recruiter') {
-          firebase.auth().signOut();
-          const msg = "Students cannot sign in through the Recruiter portal.";
-          if (errorAlert && errorMessage) {
-            errorMessage.textContent = msg;
-            errorAlert.style.display = 'flex';
-          } else {
-            alert(msg);
-          }
-          return;
+          alert(error.message);
         }
       }
-
-      // Save credentials & redirect
-      const finalRole = isUserAdmin ? "admin" : matchedUser.role;
-      localStorage.setItem('workhub_active_user_email', matchedUser.email);
-      localStorage.setItem('workhub_active_role', finalRole);
-
-      alert("Successfully signed in as " + (matchedUser.name || user.displayName) + " (" + matchedUser.email + ")");
-      window.location.href = 'index.html';
     }).catch((error) => {
       console.error("Auth error:", error);
       alert("Authentication failed: " + error.message);
     });
 });
+

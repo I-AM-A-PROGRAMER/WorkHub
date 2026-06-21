@@ -1,3 +1,4 @@
+const API_URL = 'https://workhub-wdsm.onrender.com/api';
 let currentRole = 'student';
 let currentStep = 1;
 let pwVisible = false;
@@ -43,34 +44,43 @@ document.getElementById('google-signin-btn').addEventListener('click', () => {
   }
   const provider = new firebase.auth.GoogleAuthProvider();
   firebase.auth().signInWithPopup(provider)
-    .then((result) => {
+    .then(async (result) => {
       const user = result.user;
       console.log("Logged in user:", user);
       
       const email = user.email;
-      const role = (email === "supriyo3606c@gmail.com") ? "admin" : currentRole;
-      
-      localStorage.setItem('workhub_active_user_email', email);
-      localStorage.setItem('workhub_active_role', role);
-      
-      let usersList = JSON.parse(localStorage.getItem('workhub_users')) || [];
-      if (!usersList.some(u => u.email === email)) {
-        const newUser = {
-          name: user.displayName || email.split('@')[0],
-          email: email,
-          role: role
-        };
-        if (role === 'student') {
-          newUser.resume = '';
-        } else if (role === 'recruiter') {
-          newUser.company = 'Stripe';
-        }
-        usersList.push(newUser);
-        localStorage.setItem('workhub_users', JSON.stringify(usersList));
-      }
 
-      alert("Successfully signed in as " + user.displayName + " (" + user.email + ")");
-      window.location.href = 'index.html';
+      try {
+        const response = await fetch(`${API_URL}/auth/google`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email,
+            name: user.displayName,
+            portalRole: currentRole
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Google signup failed');
+        }
+
+        // Save credentials
+        localStorage.setItem('workhub_token', data.token);
+        localStorage.setItem('workhub_active_user_email', data.email);
+        localStorage.setItem('workhub_active_role', data.role);
+
+        alert("Successfully signed in as " + (data.name || user.displayName) + " (" + data.email + ")");
+        window.location.href = 'index.html';
+
+      } catch (error) {
+        firebase.auth().signOut();
+        alert(error.message);
+      }
     }).catch((error) => {
       console.error("Auth error:", error);
       alert("Authentication failed: " + error.message);
@@ -166,7 +176,7 @@ function togglePassword() {
   document.getElementById('eye-hide').style.display = pwVisible ? 'block' : 'none';
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   if (!document.getElementById('terms-check').checked) {
     alert('Please agree to the Terms of Service to continue.');
     return;
@@ -183,39 +193,64 @@ function handleSubmit() {
   const fn = document.getElementById('first-name').value.trim();
   const ln = document.getElementById('last-name').value.trim();
   const em = document.getElementById('email-input').value.trim();
-  const role = (em === "supriyo3606c@gmail.com") ? "admin" : currentRole;
+  const password = document.getElementById('pw-input').value;
+  const role = currentRole;
 
-  localStorage.setItem('workhub_active_user_email', em);
-  localStorage.setItem('workhub_active_role', role);
+  const university = document.getElementById('university').value.trim();
+  const degree = document.getElementById('degree').value.trim();
+  const gradYear = document.getElementById('grad-year').value.trim();
+  const fieldOfStudy = document.getElementById('field-of-study').value.trim();
 
-  let usersList = JSON.parse(localStorage.getItem('workhub_users')) || [
-    { name: "Alex Smith", email: "alex@university.edu", role: "student", resume: "https://drive.google.com/file/d/alex-resume/view" },
-    { name: "Sarah Jenkins", email: "sarah@stripe.com", role: "recruiter", company: "Stripe" },
-    { name: "Super Admin", email: "admin@workhub.com", role: "admin" }
-  ];
+  const company = document.getElementById('company-name').value.trim();
+  const industry = document.getElementById('industry').value.trim();
+  const jobTitle = document.getElementById('job-title').value.trim();
 
-  if (!usersList.some(u => u.email === em)) {
-    const newUser = {
-      name: fn + ' ' + ln,
-      email: em,
-      role: role
-    };
-    if (role === 'student') {
-      newUser.resume = '';
-    } else if (role === 'recruiter') {
-      newUser.company = document.getElementById('company-name').value.trim() || 'Stripe';
+  try {
+    const response = await fetch(`${API_URL}/auth/signup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: fn + ' ' + ln,
+        email: em,
+        password,
+        role,
+        university,
+        degree,
+        gradYear,
+        fieldOfStudy,
+        company,
+        industry,
+        jobTitle
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Signup failed');
     }
-    usersList.push(newUser);
-    localStorage.setItem('workhub_users', JSON.stringify(usersList));
-  }
 
-  setTimeout(() => {
+    // Save credentials
+    localStorage.setItem('workhub_token', data.token);
+    localStorage.setItem('workhub_active_user_email', data.email);
+    localStorage.setItem('workhub_active_role', data.role);
+
     document.getElementById('main-form').style.display = 'none';
     const ss = document.getElementById('success-screen');
     ss.classList.add('visible');
-    if (role === 'recruiter') {
+    if (data.role === 'recruiter') {
       document.getElementById('success-msg').textContent = 'Your recruiter account is under review. We\'ll notify you within 24 hours once approved — then you can start posting listings.';
       document.getElementById('success-chips').innerHTML = '<span class="success-chip">Account created</span><span class="success-chip">Under review</span><span class="success-chip">Email sent</span>';
     }
-  }, 2000);
+
+  } catch (error) {
+    btn.disabled = false;
+    label.style.display = 'inline';
+    arrow.style.display = 'inline';
+    spinner.style.display = 'none';
+    alert(error.message);
+  }
 }
+
