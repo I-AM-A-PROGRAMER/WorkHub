@@ -35,67 +35,24 @@ function handleSubmit(e) {
   }, 1800);
 }
 
-// Parse .env / env / env.json file
-async function loadEnv() {
-  try {
-    // Try to load .env first
-    let response = await fetch('.env');
-    if (!response.ok) {
-      // Fallback to env without dot (if server blocks dotfiles)
-      response = await fetch('env');
-    }
-    if (!response.ok) {
-      // Fallback to env.json (very reliable static JSON fallback)
-      response = await fetch('env.json');
-      if (response.ok) {
-        return await response.json();
-      }
-    }
-    if (!response.ok) {
-      console.warn("Could not load .env, env, or env.json file");
-      return {};
-    }
-    const text = await response.text();
-    const env = {};
-    text.split('\n').forEach(line => {
-      const parts = line.split('=');
-      if (parts.length >= 2) {
-        const key = parts[0].trim();
-        let value = parts.slice(1).join('=').trim();
-        if (value.startsWith('"') && value.endsWith('"')) {
-          value = value.substring(1, value.length - 1);
-        } else if (value.startsWith("'") && value.endsWith("'")) {
-          value = value.substring(1, value.length - 1);
-        }
-        env[key] = value;
-      }
-    });
-    return env;
-  } catch (e) {
-    console.error("Failed to load env file:", e);
-    return {};
-  }
-}
-
 // Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyAzWMhMAU09WjOboL5SnEcEMD7FSrJK2Mc",
+  authDomain: "authentication-f62b4.firebaseapp.com",
+  projectId: "authentication-f62b4",
+  storageBucket: "authentication-f62b4.firebasestorage.app",
+  messagingSenderId: "461551814952",
+  appId: "1:461551814952:web:a2132a5f306c7452cca81d",
+  measurementId: "G-MZWN3QD8JD"
+};
+
 let firebaseInitialized = false;
-loadEnv().then(env => {
-  if (env.FIREBASE_API_KEY) {
-    const firebaseConfig = {
-      apiKey: env.FIREBASE_API_KEY,
-      authDomain: env.FIREBASE_AUTH_DOMAIN,
-      projectId: env.FIREBASE_PROJECT_ID,
-      storageBucket: env.FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: env.FIREBASE_MESSAGING_SENDER_ID,
-      appId: env.FIREBASE_APP_ID,
-      measurementId: env.FIREBASE_MEASUREMENT_ID
-    };
-    firebase.initializeApp(firebaseConfig);
-    firebaseInitialized = true;
-  } else {
-    console.warn("Firebase configuration not found in .env, env, or env.json");
-  }
-});
+try {
+  firebase.initializeApp(firebaseConfig);
+  firebaseInitialized = true;
+} catch (e) {
+  console.error("Firebase init error:", e);
+}
 
 // Handle Google Sign-In
 document.getElementById('google-signin-btn').addEventListener('click', () => {
