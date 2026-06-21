@@ -197,6 +197,23 @@ html, body { height: 100%; font-family: var(--font-body); background: var(--bg);
 .recruiter-notice svg { flex-shrink: 0; margin-top: 1px; }
 .recruiter-notice p { font-size: 12px; color: var(--slate-500); line-height: 1.6; }
 
+.alert-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+.alert-error svg {
+  flex-shrink: 0;
+  stroke: #ef4444;
+}
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
