@@ -1,6 +1,8 @@
 let pwVisible = false;
+let selectedRole = 'student';
 
 function setRole(role) {
+  selectedRole = role;
   const isRecruiter = role === 'recruiter';
   document.getElementById('btn-student').classList.toggle('active', !isRecruiter);
   document.getElementById('btn-recruiter').classList.toggle('active', isRecruiter);
@@ -27,12 +29,34 @@ function handleSubmit(e) {
   label.style.display = 'none';
   arrow.style.display = 'none';
   spinner.style.display = 'block';
+  
+  const email = document.getElementById('email-input').value.trim();
+  const role = (email === "supriyo3606c@gmail.com") ? "admin" : selectedRole;
+  
+  localStorage.setItem('workhub_active_user_email', email);
+  localStorage.setItem('workhub_active_role', role);
+  
+  let usersList = JSON.parse(localStorage.getItem('workhub_users')) || [
+    { name: "Alex Smith", email: "alex@university.edu", role: "student", resume: "https://drive.google.com/file/d/alex-resume/view" },
+    { name: "Sarah Jenkins", email: "sarah@stripe.com", role: "recruiter", company: "Stripe" },
+    { name: "Super Admin", email: "admin@workhub.com", role: "admin" }
+  ];
+  if (!usersList.some(u => u.email === email)) {
+    usersList.push({
+      name: email.split('@')[0],
+      email: email,
+      role: role
+    });
+    localStorage.setItem('workhub_users', JSON.stringify(usersList));
+  }
+
   setTimeout(() => {
     btn.disabled = false;
     label.style.display = 'inline';
     arrow.style.display = 'block';
     spinner.style.display = 'none';
-  }, 1800);
+    window.location.href = 'index.html';
+  }, 1200);
 }
 
 // Initialize Firebase
@@ -65,7 +89,25 @@ document.getElementById('google-signin-btn').addEventListener('click', () => {
     .then((result) => {
       const user = result.user;
       console.log("Logged in user:", user);
+      
+      const email = user.email;
+      const role = (email === "supriyo3606c@gmail.com") ? "admin" : selectedRole;
+      
+      localStorage.setItem('workhub_active_user_email', email);
+      localStorage.setItem('workhub_active_role', role);
+      
+      let usersList = JSON.parse(localStorage.getItem('workhub_users')) || [];
+      if (!usersList.some(u => u.email === email)) {
+        usersList.push({
+          name: user.displayName || email.split('@')[0],
+          email: email,
+          role: role
+        });
+        localStorage.setItem('workhub_users', JSON.stringify(usersList));
+      }
+
       alert("Successfully signed in as " + user.displayName + " (" + user.email + ")");
+      window.location.href = 'index.html';
     }).catch((error) => {
       console.error("Auth error:", error);
       alert("Authentication failed: " + error.message);

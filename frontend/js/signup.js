@@ -46,7 +46,31 @@ document.getElementById('google-signin-btn').addEventListener('click', () => {
     .then((result) => {
       const user = result.user;
       console.log("Logged in user:", user);
+      
+      const email = user.email;
+      const role = (email === "supriyo3606c@gmail.com") ? "admin" : currentRole;
+      
+      localStorage.setItem('workhub_active_user_email', email);
+      localStorage.setItem('workhub_active_role', role);
+      
+      let usersList = JSON.parse(localStorage.getItem('workhub_users')) || [];
+      if (!usersList.some(u => u.email === email)) {
+        const newUser = {
+          name: user.displayName || email.split('@')[0],
+          email: email,
+          role: role
+        };
+        if (role === 'student') {
+          newUser.resume = '';
+        } else if (role === 'recruiter') {
+          newUser.company = 'Stripe';
+        }
+        usersList.push(newUser);
+        localStorage.setItem('workhub_users', JSON.stringify(usersList));
+      }
+
       alert("Successfully signed in as " + user.displayName + " (" + user.email + ")");
+      window.location.href = 'index.html';
     }).catch((error) => {
       console.error("Auth error:", error);
       alert("Authentication failed: " + error.message);
@@ -156,11 +180,40 @@ function handleSubmit() {
   arrow.style.display = 'none';
   spinner.style.display = 'block';
 
+  const fn = document.getElementById('first-name').value.trim();
+  const ln = document.getElementById('last-name').value.trim();
+  const em = document.getElementById('email-input').value.trim();
+  const role = (em === "supriyo3606c@gmail.com") ? "admin" : currentRole;
+
+  localStorage.setItem('workhub_active_user_email', em);
+  localStorage.setItem('workhub_active_role', role);
+
+  let usersList = JSON.parse(localStorage.getItem('workhub_users')) || [
+    { name: "Alex Smith", email: "alex@university.edu", role: "student", resume: "https://drive.google.com/file/d/alex-resume/view" },
+    { name: "Sarah Jenkins", email: "sarah@stripe.com", role: "recruiter", company: "Stripe" },
+    { name: "Super Admin", email: "admin@workhub.com", role: "admin" }
+  ];
+
+  if (!usersList.some(u => u.email === em)) {
+    const newUser = {
+      name: fn + ' ' + ln,
+      email: em,
+      role: role
+    };
+    if (role === 'student') {
+      newUser.resume = '';
+    } else if (role === 'recruiter') {
+      newUser.company = document.getElementById('company-name').value.trim() || 'Stripe';
+    }
+    usersList.push(newUser);
+    localStorage.setItem('workhub_users', JSON.stringify(usersList));
+  }
+
   setTimeout(() => {
     document.getElementById('main-form').style.display = 'none';
     const ss = document.getElementById('success-screen');
     ss.classList.add('visible');
-    if (currentRole === 'recruiter') {
+    if (role === 'recruiter') {
       document.getElementById('success-msg').textContent = 'Your recruiter account is under review. We\'ll notify you within 24 hours once approved — then you can start posting listings.';
       document.getElementById('success-chips').innerHTML = '<span class="success-chip">Account created</span><span class="success-chip">Under review</span><span class="success-chip">Email sent</span>';
     }

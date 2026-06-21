@@ -1,11 +1,422 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WorkHub — Student Job Portal & Internship Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/index.css" />
 </head>
 <body>
-    <h1>Dashboard under construction</h1>
+
+  <!-- TOP HEADER / NAVBAR -->
+  <header>
+    <div class="navbar">
+      <a href="#" class="brand">
+        <img src="img/logo.svg" alt="WorkHub Logo" class="brand-img" />
+      </a>
+
+      <!-- MAIN NAVIGATION LINKS -->
+      <nav class="nav-links" id="main-nav-links">
+        <button class="nav-link active" data-view="listings">Explore Internships</button>
+      </nav>
+
+      <!-- USER PROFILE & AUTH -->
+      <div class="nav-actions">
+        <div id="nav-auth-actions" style="display: flex; align-items: center; gap: 12px;">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO BANNER (Visible on Explore listings view for Guest/Student) -->
+  <section class="hero-wrapper" id="hero-section">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="hero-content">
+      <span class="hero-eyebrow">Bridging Students & Opportunity</span>
+      <h1 class="hero-title">Discover the next step of your career on <em>WorkHub</em></h1>
+      <p class="hero-desc">Find top internships and entry-level positions tailored to your studies, or recruit motivated university students ready to contribute.</p>
+      
+      <div class="hero-stats">
+        <div class="hero-stat-item">
+          <div class="hero-stat-val" id="hero-jobs-count">0</div>
+          <div class="hero-stat-lbl">Available Listings</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN WORKSPACE -->
+  <main>
+
+    <!-- SECTION 1: INTERNSHIP LISTINGS (EXPLORE VIEW) -->
+    <div id="view-listings" class="view-section active">
+      <div class="listings-layout">
+        
+        <!-- Listings board -->
+        <section class="listings-area">
+          <div class="search-bar-wrap">
+            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="search-input" class="search-input" placeholder="Search internships by role, company, or skills..." />
+          </div>
+
+          <div class="listings-info">
+            <div>Showing <span class="listings-count" id="count-display">0</span> available listings</div>
+          </div>
+
+          <!-- Listings dynamic grid -->
+          <div class="listings-grid" id="jobs-grid">
+            <!-- Jobs rendered by index.js -->
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- SECTION 2: STUDENT DASHBOARD -->
+    <div id="view-student-dashboard" class="view-section">
+      <div class="dashboard-header">
+        <div class="dashboard-title-group">
+          <h2>Student Portal</h2>
+          <p>Manage your applications and track status updates in real-time.</p>
+        </div>
+      </div>
+
+      <!-- Quick Metrics -->
+      <div class="dashboard-stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-icon green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div class="stat-card-info">
+            <span class="stat-card-num" id="stat-student-applied">0</span>
+            <span class="stat-card-lbl">Total Applications</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="stat-card-info">
+            <span class="stat-card-num" id="stat-student-shortlisted">0</span>
+            <span class="stat-card-lbl">Shortlisted</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="stat-card-info">
+            <span class="stat-card-num" id="stat-student-review">0</span>
+            <span class="stat-card-lbl">Under Review</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Split Layout: Profile Details & Applications Table -->
+      <div class="student-grid">
+        
+        <!-- Left Side: Profile Resume Manager -->
+        <aside class="profile-card">
+          <div class="profile-avatar-wrap">
+            <div class="profile-avatar" id="student-avatar-placeholder">A</div>
+            <h3 class="profile-name" id="student-profile-name">Alex Smith</h3>
+            <span class="profile-role">Simulated Student</span>
+          </div>
+          
+          <div class="profile-details">
+            <div class="profile-detail-item">
+              <span class="profile-detail-lbl">Email</span>
+              <span class="profile-detail-val" id="student-profile-email">alex@university.edu</span>
+            </div>
+            <div class="profile-detail-item">
+              <span class="profile-detail-lbl">Institution</span>
+              <span class="profile-detail-val">State University</span>
+            </div>
+          </div>
+
+          <div class="resume-manager">
+            <h3>Resume Settings</h3>
+            <div class="form-field">
+              <label class="form-label" for="student-resume-input">Online Resume Link</label>
+              <div class="resume-input-group">
+                <input type="url" id="student-resume-input" class="form-input-text" placeholder="https://drive.google.com/.../view" />
+                <button class="btn-card btn-card-primary" id="btn-save-resume">Save</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Right Side: Applications Table -->
+        <section class="table-card" style="margin-top: 0;">
+          <div class="table-title-bar">
+            <h3 class="table-title">Applied Internships</h3>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Job Title</th>
+                  <th>Company</th>
+                  <th>Applied Date</th>
+                  <th>Resume Used</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="student-apps-table-body">
+                <!-- Loaded dynamically by JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- SECTION 3: RECRUITER DASHBOARD -->
+    <div id="view-recruiter-dashboard" class="view-section">
+      <div class="dashboard-header">
+        <div class="dashboard-title-group">
+          <h2>Recruiter Console</h2>
+          <p>Add listings, manage posted internships, and review incoming applicants.</p>
+        </div>
+        <button class="btn-signup" onclick="openPostJobModal()" style="display:flex; align-items:center; gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Post Internship
+        </button>
+      </div>
+
+      <!-- Quick Metrics -->
+      <div class="dashboard-stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-icon green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+          </div>
+          <div class="stat-card-info">
+            <span class="stat-card-num" id="stat-recruiter-listings">0</span>
+            <span class="stat-card-lbl">My Listings</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="stat-card-info">
+            <span class="stat-card-num" id="stat-recruiter-applicants">0</span>
+            <span class="stat-card-lbl">Total Applicants</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="stat-card-info">
+            <span class="stat-card-num" id="stat-recruiter-shortlisted">0</span>
+            <span class="stat-card-lbl">Shortlisted</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recruiter Postings & Expandable Applicants -->
+      <div style="margin-bottom: 16px; font-weight:700; font-family: var(--font-display); font-size:18px; color:var(--slate-800)">Posted Internships</div>
+      <div class="posted-internships-list" id="recruiter-postings-list">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- SECTION 4: ADMIN CONTROL PANEL -->
+    <div id="view-admin-dashboard" class="view-section">
+      <div class="dashboard-header">
+        <div class="dashboard-title-group">
+          <h2>Admin Control Panel</h2>
+          <p>Monitor portal activity, manage global listings, and review mock user profiles.</p>
+        </div>
+      </div>
+
+      <!-- Admin Stats -->
+      <div class="dashboard-stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+          <div class="stat-card-info">
+            <span class="stat-card-num" id="stat-admin-users">0</span>
+            <span class="stat-card-lbl">Portal Users</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+          </div>
+          <div class="stat-card-info">
+            <span class="stat-card-num" id="stat-admin-listings">0</span>
+            <span class="stat-card-lbl">Active Listings</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="stat-card-info">
+            <span class="stat-card-num" id="stat-admin-applications">0</span>
+            <span class="stat-card-lbl">Total Applications</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Split Management Layout -->
+      <div style="display:flex; flex-direction:column; gap:32px;">
+        
+        <!-- User list -->
+        <section class="table-card">
+          <div class="table-title-bar">
+            <h3 class="table-title">Manage Users</h3>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>User Name</th>
+                  <th>Email Address</th>
+                  <th>Role</th>
+                  <th>Associated Entity</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-users-table-body">
+                <!-- Rendered dynamically by JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Listings list -->
+        <section class="table-card">
+          <div class="table-title-bar">
+            <h3 class="table-title">Manage Global Internships</h3>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Role Title</th>
+                  <th>Company Name</th>
+                  <th>Location</th>
+                  <th>Metrics</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-listings-table-body">
+                <!-- Rendered dynamically by JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: INTERNSHIP APPLICATION FORM -->
+  <div class="modal-overlay" id="modal-apply">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">Apply for Internship</h3>
+        <button class="modal-close" onclick="closeModal('apply')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="form-apply">
+        <div class="modal-body">
+          <div class="notice-pulse" style="margin-bottom:16px;">
+            Applying for <strong><span id="apply-modal-job-title">Job</span></strong> at <strong><span id="apply-modal-company">Company</span></strong>
+          </div>
+          
+          <div class="form-field">
+            <label class="form-label">Internship Description</label>
+            <div id="apply-modal-description" style="font-size: 13px; color: var(--slate-600); background: var(--slate-50); padding: 12px; border-radius: var(--radius); border: 1px solid var(--slate-200); margin-bottom: 16px; line-height: 1.6; max-height: 120px; overflow-y: auto; white-space: pre-wrap;">
+              <!-- Job description goes here -->
+            </div>
+          </div>
+          
+          <div class="form-field">
+            <label class="form-label" for="apply-resume-link">Online Resume Link (PDF / Drive Link) *</label>
+            <input type="url" id="apply-resume-link" class="form-input-text" placeholder="https://docs.google.com/document/d/.../edit" required />
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="apply-cover-letter">Short Description / Cover Letter</label>
+            <textarea id="apply-cover-letter" class="form-textarea" placeholder="Describe briefly why you are a good fit for this role..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-form btn-form-cancel" onclick="closeModal('apply')">Cancel</button>
+          <button type="submit" class="btn-form btn-form-submit">Submit Application</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT INTERNSHIP FORM -->
+  <div class="modal-overlay" id="modal-post-job">
+    <div class="modal-container wide">
+      <div class="modal-header">
+        <h3 class="modal-title" id="post-job-modal-title">Post New Internship</h3>
+        <button class="modal-close" onclick="closeModal('post-job')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="form-post-job">
+        <div class="modal-body">
+          
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label" for="job-title-input">Internship Title *</label>
+              <input type="text" id="job-title-input" class="form-input-text" placeholder="e.g. Frontend Engineering Intern" required />
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="job-company">Company Name *</label>
+              <input type="text" id="job-company" class="form-input-text" placeholder="e.g. Acme Corp" required />
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label" for="job-location">Location *</label>
+              <input type="text" id="job-location" class="form-input-text" placeholder="e.g. New York, NY or Remote" required />
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="job-duration">Duration *</label>
+              <input type="text" id="job-duration" class="form-input-text" placeholder="e.g. 3 Months or 6 Months" required />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="job-stipend">Stipend (₹ per month) *</label>
+            <input type="number" id="job-stipend" class="form-input-text" placeholder="e.g. 10000" min="0" step="1" required />
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="job-desc">Job Description *</label>
+            <textarea id="job-desc" class="form-textarea" placeholder="Detail the responsibilities, tech stacks, skills needed, and other information..." required></textarea>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-form btn-form-cancel" onclick="closeModal('post-job')">Cancel</button>
+          <button type="submit" class="btn-form btn-form-submit" id="btn-submit-job">Save Listing</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/index.js" defer></script>
 </body>
 </html>
