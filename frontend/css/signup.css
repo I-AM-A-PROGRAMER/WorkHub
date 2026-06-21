@@ -203,15 +203,7 @@ html, body { height: 100%; font-family: var(--font-body); background: var(--bg);
 }
 .toggle-pw:hover { color: var(--slate-600); }
 
-/* Password strength */
-.pw-strength { margin-top: 8px; }
-.pw-bars { display: flex; gap: 4px; margin-bottom: 4px; }
-.pw-bar { flex: 1; height: 3px; border-radius: 2px; background: var(--slate-200); transition: background 0.2s; }
-.pw-bar.weak   { background: #ef4444; }
-.pw-bar.fair   { background: #f59e0b; }
-.pw-bar.good   { background: #3b82f6; }
-.pw-bar.strong { background: var(--green); }
-.pw-hint { font-size: 11px; color: var(--slate-400); }
+
 
 /* Checkbox */
 .check-field { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; cursor: pointer; }

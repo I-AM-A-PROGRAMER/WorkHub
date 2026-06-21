@@ -105,25 +105,7 @@ function togglePassword() {
   document.getElementById('eye-hide').style.display = pwVisible ? 'block' : 'none';
 }
 
-function checkStrength(val) {
-  const bars = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3'), document.getElementById('bar4')];
-  const hint = document.getElementById('pw-hint');
-  const strength = document.getElementById('pw-strength');
-  strength.style.display = val.length > 0 ? 'block' : 'none';
-  bars.forEach(b => b.className = 'pw-bar');
-  if (!val) return;
-  let score = 0;
-  if (val.length >= 8) score++;
-  if (/[A-Z]/.test(val)) score++;
-  if (/[0-9]/.test(val)) score++;
-  if (/[^A-Za-z0-9]/.test(val)) score++;
-  const levels = ['weak', 'fair', 'good', 'strong'];
-  const labels = ['Too weak', 'Fair — add numbers', 'Good — add symbols', 'Strong password'];
-  const cls = levels[score - 1] || 'weak';
-  for (let i = 0; i < score; i++) bars[i].classList.add(cls);
-  hint.textContent = labels[score - 1] || 'Use 8+ characters';
-  hint.style.color = score >= 3 ? 'var(--green)' : score === 2 ? '#f59e0b' : '#ef4444';
-}
+
 
 function handleSubmit() {
   if (!document.getElementById('terms-check').checked) {

@@ -158,7 +158,7 @@
           <div class="field">
             <label class="field-label-text">Password</label>
             <div class="input-wrap">
-              <input type="password" id="pw-input" class="has-toggle" placeholder="Create a strong password" oninput="checkStrength(this.value)" />
+              <input type="password" id="pw-input" class="has-toggle" placeholder="Create a strong password" />
               <button type="button" class="toggle-pw" onclick="togglePassword()">
                 <svg id="eye-show" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
@@ -168,15 +168,6 @@
                   <line x1="1" y1="1" x2="23" y2="23"/>
                 </svg>
               </button>
-            </div>
-            <div class="pw-strength" id="pw-strength" style="display:none">
-              <div class="pw-bars">
-                <div class="pw-bar" id="bar1"></div>
-                <div class="pw-bar" id="bar2"></div>
-                <div class="pw-bar" id="bar3"></div>
-                <div class="pw-bar" id="bar4"></div>
-              </div>
-              <span class="pw-hint" id="pw-hint">Use 8+ characters with numbers &amp; symbols</span>
             </div>
             <div class="field-error" id="err-password">Password must be at least 8 characters</div>
           </div>
