@@ -1,0 +1,4 @@
+# Firebase API Key / SDK credential files
+frontend/.env
+frontend/env
+frontend/env.json
